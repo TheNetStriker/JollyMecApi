@@ -28,6 +28,38 @@ To use the script **python** must be installed including the following addons:
 # Serial interface
 ## Description
 This method requires wiring, soldering and a Teensy 3.2 and **can damage your heater** if you connect the wrong pins! There is some serious voltage on some of the pins that can damage the electronics. I myself damaged two electronic boards trying to reverse engineer this. I can also only provide wiring infos about the models **Foghet Evo ARIA** and **Odette**.
+## JollyMec serial API
+The serial API uses a **single wire serial interface**. This means that only the controller (in this case the Arduino) can send requests for data or to set settings and the client (in this case the heater) can only respond to the request after the controller has disabled the sending (TX) port. In general there are two byte sequences that can be sent to the heaters. There is a two byte sequence to request data from the heater and there is a four byte sequense to set data.
+### Requesting data
+Data from the heater can be requested by sending two bytes for the memory address to be requested. I found out that the heater responds to a lot of two byte combinations, but I could only find out on a few addresses for what the are for. These are the values I could discover on the two heaters. The response sent by the heater also contains two bytes. The first byte corresponds to the second byte of the request and the second byte is the requested value.
+#### Foghet Evo ARIA
+**0x2000**: Heater state 0 = Off, 1 to 7 start  
+**0x00E7**: Power + 1 (Values: 2 - 6)  
+**0x005F**: Temperature smokegas  
+**0x2071**: Circulating ventilator level  
+**0x2064**: Standby on/off  
+**0x20EB**: Mode 0 = Wood, 1 = Pellet  
+#### Odette
+**0x0021**: Heater state 00: Off 01-06: Ignition/Start up 07: Running 09: Cleaning  
+**0x20D0**: Power 1 to 1  
+**0x005C**: Smoke temperature in degrees  
+**0x20E4**: Standby activated 0501: Activ 0400: Inactive
+### Setting data
+Setting data is done by sending four bytes. The first two byte always are **0x80E8**. Then comes the command byte and the last byte is a modulo 256 checksum. The response contains two bytes.
+#### Foghet Evo ARIA
+**0x80E8AA12**: Power off  
+&nbsp;&nbsp;&nbsp;&nbsp;**Response**: 0x12AA  
+**0x80E855BD**: Power on  
+&nbsp;&nbsp;&nbsp;&nbsp;**Response**: 0xBD55  
+**0xA001XXXX**: Set power level (third byte is the power level and last byte is the checksum)  
+&nbsp;&nbsp;&nbsp;&nbsp;**Response**: First byte = 0xA1 + power value, Second byte = power value 
+#### Odette
+**0x80E8AA12**: Power off  
+&nbsp;&nbsp;&nbsp;&nbsp;**Response**: 0x12AA  
+**0x80E855BD**: Power on  
+&nbsp;&nbsp;&nbsp;&nbsp;**Response**: 0xBD55  
+**0xA0D0XXXX**: Set power level (third byte is the power level and last byte is the checksum)  
+&nbsp;&nbsp;&nbsp;&nbsp;**Response**: First byte = 0x70 + power value, Second byte = power value
 ## Wiring
 ### Teensy 3.2
 The [Teensy 3.2 Arduino](https://www.pjrc.com/store/teensy32.html "Teensy 3.2 Arduino") works as a bridge between the single wire serial port of the heaters and other devices that can only work with normal serial ports. Also some modifications are required to the kernel files of the Teensy 3.2 to enable support for the **Single Wire Serial** interface.
