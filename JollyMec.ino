@@ -354,7 +354,7 @@ void checkSonarPelletLevel(int deviceId)
   {
     unsigned int currentDistanceDevice1 = sonarDevice1.ping_cm();
 
-    if (device1PelletLevel != currentDistanceDevice1 || forceSendValuesAtNextRun)
+    if (device1PelletLevel != currentDistanceDevice1 || forceSendValues)
     {
       device1PelletLevel = currentDistanceDevice1;
       distance = currentDistanceDevice1;
@@ -363,7 +363,7 @@ void checkSonarPelletLevel(int deviceId)
   else if (deviceId == 2)
   {
     unsigned int currentDistanceDevice2 = sonarDevice2.ping_cm();
-    if (device2PelletLevel != currentDistanceDevice2 || forceSendValuesAtNextRun)
+    if (device2PelletLevel != currentDistanceDevice2 || forceSendValues)
     {
       device2PelletLevel = currentDistanceDevice2;
       distance = currentDistanceDevice2;
