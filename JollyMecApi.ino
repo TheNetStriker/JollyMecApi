@@ -1,4 +1,4 @@
-﻿#define USE_HARDWARE_SERIAL true
+#define USE_HARDWARE_SERIAL true
 #define USE_SONAR_PELLET_SENSOR false
 
 #if !USE_HARDWARE_SERIAL

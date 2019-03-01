@@ -74,12 +74,12 @@ The [Teensy 3.2 Arduino](https://www.pjrc.com/store/teensy32.html "Teensy 3.2 Ar
 ![](./images/Odette.JPG)
 ## Modify Teensy 3.2 kernel files
 To get the single wire serial interface to work some files must be replaced in the Teensy kernel. The files that must be replaced are:
-- MySoftwareSerial.h
+- HardwareSerial.h
 - serial1.c
 - serial2.c
 - serial3.c
 
-You can find the modified files [here](https://github.com/TheNetStriker/cores/tree/SingleWireSerial/teensy3 "here") and [this](https://github.com/TheNetStriker/cores/commit/82d762ba9ccf741c450eff08eb6beaa19567e7b8 "this") ist the commit with the changes to the files. After the files have been modified the ino file should compile on the Teensy.
+You can find the modified files [here](https://github.com/TheNetStriker/cores/tree/SingleWireSerial/teensy3 "here") and [this](https://github.com/TheNetStriker/cores/commit/011600c6f75c400c7df5140123d720ed9c803f97 "this") ist the commit with the changes to the files. After the files have been modified the ino file should compile on the Teensy.
 ## Understanding the ino script
 The ino script has some variables that have to be tweaked:  
 
