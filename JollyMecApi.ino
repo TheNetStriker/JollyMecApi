@@ -1,5 +1,5 @@
 #define USE_HARDWARE_SERIAL true
-#define USE_SONAR_PELLET_SENSOR false
+#define USE_SONAR_PELLET_SENSOR true
 
 #if !USE_HARDWARE_SERIAL
   #include <SoftwareSerial.h>
@@ -90,7 +90,7 @@ const byte pelletLevelByte = 0x07; //Type pellet level
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   
-  serialUsb.begin(9600);
+  serialUsb.begin(19200);
   if (debugMode)
     serialUsb.println("START");
 
@@ -348,6 +348,7 @@ void queryDevice2()
 
 void checkSonarPelletLevel(int deviceId)
 {
+#if USE_SONAR_PELLET_SENSOR
   unsigned int distance = 0;
   
   if (deviceId == 1)
@@ -389,6 +390,7 @@ void checkSonarPelletLevel(int deviceId)
       serialUsb.write(updateMessage, 4);
     }
   }
+#endif
 }
 
 void checkAndSendCommands()
