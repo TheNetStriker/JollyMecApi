@@ -1,9 +1,9 @@
 {
   "framework-arduinoteensy-mod": [
     {
-      "sha1": "22b421fd3010ed6c9f2ec765db2f86f5bc299169", 
+      "sha1": "4610ed942aebf44b3d6f7c9ed584dd6c5aa4aeb8", 
       "system": "*", 
-      "url": "https://raw.githubusercontent.com/TheNetStriker/JollyMecApi/master/Platform.io/framework-arduinoteensy-mod-1.145.0.tar.gz", 
+      "url": "https://raw.githubusercontent.com/TheNetStriker/JollyMecApi/master/Platform.io/framework-arduinoteensy-single_wire-mod-1.145.0.tar.gz", 
       "version": "1.145.0"
     }
   ]
