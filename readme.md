@@ -81,7 +81,7 @@ To get the single wire serial interface to work some files must be replaced in t
 
 You can find the modified files [here](https://github.com/TheNetStriker/cores/tree/SingleWireSerial/teensy3 "here") and [this](https://github.com/TheNetStriker/cores/commit/011600c6f75c400c7df5140123d720ed9c803f97 "this") ist the commit with the changes to the files. After the files have been modified the ino file should compile on the Teensy.
 
-In the Platform.io folder you can find the already modified package for the Teensy 3.2 and a modified platform that uses this package. Simply copy the **packages** and **platforms** folder to the [platform.io](http://docs.platformio.org/en/latest/projectconf/section_platformio.html#home-dir) folder. After that the project should automatically use the modified Teensy framework.
+When you are using Platform.io the modified framework files will be downloaded automatically from this GitHub project.
 ## Understanding the ino script
 The ino script has some variables that have to be tweaked:  
 
