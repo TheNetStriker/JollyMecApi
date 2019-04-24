@@ -1,0 +1,10 @@
+{
+  "framework-arduinoteensy-mod": [
+    {
+      "sha1": "1410d25e42484c6052fb57ac562ee8411e18eb3b", 
+      "system": "*", 
+      "url": "https://raw.githubusercontent.com/TheNetStriker/JollyMecApi/master/Platform.io/framework-arduinoteensy-mod-1.144.0.tar.gz", 
+      "version": "1.144.0"
+    }
+  ]
+}
