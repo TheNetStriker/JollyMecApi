@@ -1,5 +1,5 @@
 {
-  "framework-arduinoteensy-mod": [
+  "framework-arduinoteensy-single-wire-mod": [
     {
       "sha1": "4610ed942aebf44b3d6f7c9ed584dd6c5aa4aeb8", 
       "system": "*", 
