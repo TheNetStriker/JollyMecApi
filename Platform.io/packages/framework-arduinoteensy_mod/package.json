@@ -1,5 +1,5 @@
 {
-    "name": "framework-arduinoteensy_mod",
+    "name": "framework-arduinoteensy-mod",
     "description": "Arduino Wiring-based Framework (Teensy Core)",
     "system": "*",
     "url": "https://github.com/PaulStoffregen/cores",
