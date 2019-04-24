@@ -1,6 +1,0 @@
-{
-    "terminal.integrated.env.osx": {
-        "PATH": "/Users/mad/.platformio/penv/bin:/Users/mad/.platformio/penv:/opt/local/bin:/opt/local/sbin:/opt/local/bin:/opt/local/sbin:/Applications/eclipse/android-ndk-r9:/Users/mad/Library/Android/sdk/platform-tools:/usr/share/ant/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/VMware Fusion.app/Contents/Public:/usr/local/share/dotnet:/opt/X11/bin:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Applications/Wireshark.app/Contents/MacOS:/usr/local/git/bin",
-        "PLATFORMIO_CALLER": "vscode"
-    }
-}
