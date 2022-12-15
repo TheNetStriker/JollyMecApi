@@ -10,33 +10,39 @@
   #include <NewPing.h>
 #endif
 
+struct deviceCommand {
+  bool readSecondByte;
+  byte firstByteAddress[2];
+  byte secondByteAddress[2];
+};
+
 //Heater Living (Foghet Evo ARIA)
-byte device1Commands [][2] = {
-  {0x20, 0x00}, //Heater state 0 = Off, 1 to 7 start
-  {0x00, 0xE7}, //Power + 1 (Values: 2 - 6)
-  {0x00, 0x5F}, //Temperature Smokegas
-  {0x20, 0x71}, //circulating ventilator
-  {0x20, 0x64}, //Standby on/off
-  {0x20, 0xEB}, //Mode 0 = Wood, 1 = Pellet
+deviceCommand device1Commands[] = {
+  {false, {0x20, 0x00}, {0x00, 0x00}}, //Heater state 0 = Off, 1 to 7 start
+  {false, {0x00, 0xE7}, {0x00, 0x00}}, //Power + 1 (Values: 2 - 6)
+  {true, {0x00, 0x5F}, {0x00, 0x60}}, //Temperature Smokegas, second byte for temperatures higher than 255. (Multiply second value by 256)
+  {false, {0x20, 0x71}, {0x00, 0x00}}, //circulating ventilator
+  {false, {0x20, 0x64}, {0x00, 0x00}}, //Standby on/off
+  {false, {0x20, 0xEB}, {0x00, 0x00}}, //Mode 0 = Wood, 1 = Pellet
 };
 
 //Heater cellar (Odette)
-byte device2Commands [][2] = {
-  {0x00, 0x21}, //Heater state 00: Off 01-06: Ignition/Start up 07: Running 09: Cleaning
-  {0x20, 0xD0}, //Power 1 to 1
-  {0x00, 0x5C}, //Smoke temperature in degrees
-  {0x20, 0xE4}, //Standby activated 0501: Activ 0400: Inactive
+deviceCommand device2Commands [] = {
+  {false, {0x00, 0x21}, {0x00, 0x00}}, //Heater state 00: Off 01-06: Ignition/Start up 07: Running 09: Cleaning
+  {false, {0x20, 0xD0}, {0x00, 0x00}}, //Power 1 to 1
+  {false, {0x00, 0x5C}, {0x00, 0x00}}, //Smoke temperature in degrees
+  {false, {0x20, 0xE4}, {0x00, 0x00}}, //Standby activated 0501: Activ 0400: Inactive
 };
 
 int commandPosition;
 byte buffer2[2];
 byte buffer4[4];
 
-const int countCommandsDevice1 = sizeof(device1Commands)/2;
-byte responsesDevice1 [countCommandsDevice1][2];
+const int countCommandsDevice1 = 6;
+byte responsesDevice1 [countCommandsDevice1][4];
 
-const int countCommandsDevice2 = sizeof(device2Commands)/2;
-byte responsesDevice2 [countCommandsDevice2][2];
+const int countCommandsDevice2 = 4;
+byte responsesDevice2 [countCommandsDevice2][4];
 
 const int countCommands = countCommandsDevice1 > countCommandsDevice2 ? countCommandsDevice1 : countCommandsDevice2;
 
@@ -91,7 +97,7 @@ const byte pelletLevelByte = 0x07; //Type pellet level
 void clearBuffers()
 {
   buffer2[0] = 0;
-  buffer2[1] = 1;
+  buffer2[1] = 0;
 
   buffer4[0] = 0;
   buffer4[1] = 0;
@@ -157,7 +163,7 @@ void sendAkNakMessage(byte deviceId, byte commandType, bool acknowledge, byte na
   }
   else
   {
-    byte akNakMessage[] = { deviceId, 0x00, commandType, 0x00 };
+    byte akNakMessage[5] = { deviceId, 0x00, commandType, 0x00, 0x00 };
   
     if (acknowledge)
     {
@@ -168,9 +174,9 @@ void sendAkNakMessage(byte deviceId, byte commandType, bool acknowledge, byte na
       akNakMessage[1] = nakByte;
     }
   
-    akNakMessage[3] = calculateModulo(akNakMessage, 3);
+    akNakMessage[4] = calculateModulo(akNakMessage, 4);
   
-    serialUsb.write(akNakMessage, 4);
+    serialUsb.write(akNakMessage, 5);
   }
 }
 
@@ -225,109 +231,129 @@ void queryDevice1()
     return;
 
   clearBuffers();
+
+  deviceCommand currentDeviceCommand = device1Commands[commandPosition];
   
   //On this device we need to flush the serial port after every byte.
-  serialDevice1.write(device1Commands[commandPosition][0]);
+  serialDevice1.write(currentDeviceCommand.firstByteAddress[0]);
   serialDevice1.flush();
-  serialDevice1.write(device1Commands[commandPosition][1]);
+  serialDevice1.write(currentDeviceCommand.firstByteAddress[1]);
   
-  int countRead = serialDevice1.readBytes(buffer2, 2);
+  int countRead = serialDevice1.readBytes(&buffer4[0], 2);
 
-  if (countRead == 2)
+  if (currentDeviceCommand.readSecondByte)
   {
-    if (forceSendValues || firstRunComplete && (buffer2[0] != responsesDevice1[commandPosition][0]
-      || buffer2[1] != responsesDevice1[commandPosition][1]))
+    serialDevice1.write(currentDeviceCommand.secondByteAddress[0]);
+    serialDevice1.flush();
+    serialDevice1.write(currentDeviceCommand.secondByteAddress[1]);
+    
+    countRead += serialDevice1.readBytes(&buffer4[2], 2);
+  }
+
+  if ((!currentDeviceCommand.readSecondByte && countRead == 2)
+    || (currentDeviceCommand.readSecondByte && countRead == 4))
+  {
+    if (forceSendValues || firstRunComplete && !compareArrays(buffer4, responsesDevice1[commandPosition]))
     {
-      byte currentCommand = device1Commands[commandPosition][1];
-      byte currentValue = buffer2[1];
-      byte updateMessage[4];
+      byte currentValue1 = buffer4[1];
+      byte currentValue2 = buffer4[3];
+      byte updateMessage[5];
       
       //Device 1
       updateMessage[0] = 0x01;
       
       //Parse response
-      if (currentCommand == device1Commands[0][1])
+      if (commandPosition == 0)
       {
         //State
         updateMessage[1] = stateByte;
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 1 state: ");
       }
-      else if (currentCommand == device1Commands[1][1])
+      else if (commandPosition == 1)
       {
-        currentValue -= 1;  //Power is always + 1
+        currentValue1 -= 1;  //Power is always + 1
         //Power
         updateMessage[1] = powerByte;
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 1 power: ");
       }
-      else if (currentCommand == device1Commands[2][1])
+      else if (commandPosition == 2)
       {
         //Smoke temperature
         updateMessage[1] = smokeTemperatureByte; //Type smoke temperature
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 1 smoke temperature: ");
       }
       /*
-      else if (currentCommand == device1Commands[3][1])
+      else if (commandPosition == 3)
       {
         //Smoke temperature
         updateMessage[1] = ambientTemperatureByte; //Type ambient temperature
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 1 ambient temperature: ");
       }
       */
-      else if (currentCommand == device1Commands[3][1])
+      else if (commandPosition == 3)
       {
         //Ventilation
         updateMessage[1] = ventilationByte; //Type ventilation
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 1 ventilation: ");
       }
-      else if (currentCommand == device1Commands[4][1])
+      else if (commandPosition == 4)
       {
         //Standby
         updateMessage[1] = standbyByte; //Type standby
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 1 standby: ");
       }
-      else if (currentCommand == device1Commands[5][1])
+      else if (commandPosition == 5)
       {
         //Mode wood or pellet
         updateMessage[1] = modeByte; //Type mode wood or pellet
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 1 mode wood or pellet: ");
       }
       
-      updateMessage[3] = calculateModulo(updateMessage, 3);
+      updateMessage[4] = calculateModulo(updateMessage, 4);
 
       if (debugMode)
       {
-        serialUsb.print(String(currentValue));
+        serialUsb.print(String(currentValue1) + " " + String(currentValue2));
         serialUsb.println();
       }
       else
       {
-        serialUsb.write(updateMessage, 4);
+        serialUsb.write(updateMessage, 5);
       }
     }
 
-    responsesDevice1[commandPosition][0] = buffer2[0];
-    responsesDevice1[commandPosition][1] = buffer2[1];
+    responsesDevice1[commandPosition][0] = buffer4[0];
+    responsesDevice1[commandPosition][1] = buffer4[1];
+    responsesDevice1[commandPosition][2] = buffer4[2];
+    responsesDevice1[commandPosition][3] = buffer4[3];
   }
 }
 
@@ -338,85 +364,101 @@ void queryDevice2()
 
   clearBuffers();
 
-  serialDevice2.write(device2Commands[commandPosition], 2);
-    
-  int countRead = serialDevice2.readBytes(buffer2, 2);
+  deviceCommand currentDeviceCommand = device2Commands[commandPosition];
 
-  if (countRead == 2)
+  serialDevice2.write(currentDeviceCommand.firstByteAddress, 2);
+    
+  int countRead = serialDevice2.readBytes(&buffer4[0], 2);
+
+  if (currentDeviceCommand.readSecondByte)
   {
-    if (forceSendValues || firstRunComplete && (buffer2[0] != responsesDevice2[commandPosition][0]
-      || buffer2[1] != responsesDevice2[commandPosition][1]))
+    serialDevice2.write(currentDeviceCommand.secondByteAddress, 2);
+    
+    countRead += serialDevice1.readBytes(&buffer4[2], 2);
+  }
+
+  if ((!currentDeviceCommand.readSecondByte && countRead == 2)
+    || (currentDeviceCommand.readSecondByte && countRead == 4))
+  {
+    if (forceSendValues || firstRunComplete && !compareArrays(buffer4, responsesDevice2[commandPosition]))
     {
-      byte currentCommand = device2Commands[commandPosition][1];
-      byte currentValue = buffer2[1];
-      byte updateMessage[4];
+      byte currentValue1 = buffer4[1];
+      byte currentValue2 = buffer4[3];
+      byte updateMessage[5];
       
       //Device 2
       updateMessage[0] = 0x02;
       
       //Parse response
-      if (currentCommand == device2Commands[0][1])
+      if (commandPosition == 0)
       {
         //State
         updateMessage[1] = stateByte; //Type state
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 2 state: ");
       }
-      else if (currentCommand == device2Commands[1][1])
+      else if (commandPosition == 1)
       {
         //Power
         updateMessage[1] = powerByte; //Type power
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 2 power: ");
       }
-      else if (currentCommand == device2Commands[2][1])
+      else if (commandPosition == 2)
       {
         //Smoke temperature
         updateMessage[1] = smokeTemperatureByte; //Type smoke temperature
-        updateMessage[2] = currentValue;
+        updateMessage[2] = currentValue1;
+        updateMessage[3] = currentValue2;
 
         if (debugMode)
           serialUsb.print("Device 2 smoke temperature: ");
       }
-      else if (currentCommand == device2Commands[3][1])
+      else if (commandPosition == 3)
       {
         //Standby
         updateMessage[1] = standbyByte; //Type standby
 
-        if (buffer2[0] == 0x04 && buffer2[1] == 0x00)
+        if (buffer4[0] == 0x04 && buffer4[1] == 0x00)
         {
           //off
           updateMessage[2] = 0;
         }
-        else if (buffer2[0] == 0x05 && buffer2[1] == 0x01)
+        else if (buffer4[0] == 0x05 && buffer4[1] == 0x01)
         {
           //on
           updateMessage[2] = 1;
         }
 
+        updateMessage[3] = currentValue2;
+
         if (debugMode)
           serialUsb.print("Device 2 standby: ");
       }
       
-      updateMessage[3] = calculateModulo(updateMessage, 3);
+      updateMessage[4] = calculateModulo(updateMessage, 4);
 
       if (debugMode)
       {
-        serialUsb.print(String(currentValue));
+        serialUsb.print(String(currentValue1) + " " + String(currentValue2));
         serialUsb.println();
       }
       else
       {
-        serialUsb.write(updateMessage, 4);
+        serialUsb.write(updateMessage, 5);
       }
     }
 
-    responsesDevice2[commandPosition][0] = buffer2[0];
-    responsesDevice2[commandPosition][1] = buffer2[1];
+    responsesDevice2[commandPosition][0] = buffer4[0];
+    responsesDevice2[commandPosition][1] = buffer4[1];
+    responsesDevice2[commandPosition][2] = buffer4[2];
+    responsesDevice2[commandPosition][3] = buffer4[3];
   }
 }
 
@@ -454,14 +496,15 @@ void checkSonarPelletLevel(int deviceId)
     }
     else
     {
-      byte updateMessage[4];
+      byte updateMessage[5];
 
       updateMessage[0] = deviceId;
       updateMessage[1] = pelletLevelByte; //Type pellet level
       updateMessage[2] = distance;
-      updateMessage[3] = calculateModulo(updateMessage, 3);
+      updateMessage[3] = 0x00; // Not used at the moment
+      updateMessage[4] = calculateModulo(updateMessage, 4);
       
-      serialUsb.write(updateMessage, 4);
+      serialUsb.write(updateMessage, 5);
     }
   }
 #endif
@@ -639,7 +682,7 @@ void checkAndSendCommands()
       }
     }
 	
-	serialWaitForTransmission();
+	  serialWaitForTransmission();
   }
 }
 
